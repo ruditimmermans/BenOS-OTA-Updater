@@ -86,19 +86,35 @@
             <intent-filter>
                 <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
             </intent-filter>
-        </receiver>
+   	 </receiver>
 
-        <activity
-            android:name=".settings.SettingsActivity"
+
+        <!--
+        <receiver
+            android:name=".OtaTrampolineReceiver"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
+                <action android:name="systemupdate.intent.action.ROM_SYSTEM_OTA" />
             </intent-filter>
-
+        </receiver>
+        -->
+    
+	<activity
+            android:name=".settings.SettingsActivity"
+            android:exported="true"
+	    android:excludeFromRecents="true" >
+        
             <intent-filter>
-                <action android:name=".GoogleOtaClient" />
+                <action android:name="android.intent.action.MAIN" />
+                 <category android:name="android.intent.category.LAUNCHER" /> 
+            </intent-filter> 
+            <intent-filter>
+                <action android:name=".update.SystemUpdateActivity" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="systemupdate.intent.action.ROM_SYSTEM_OTA" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
     </application>

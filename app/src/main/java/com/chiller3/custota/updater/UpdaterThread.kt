@@ -655,6 +655,19 @@ class UpdaterThread(
             updateAvailable = csigInfo.vbmetaDigest != vbmetaDigest
         }
 
+        // Adding bespoke timestamp is easier than dealing with OTA metadata 
+        if (updateAvailable) {
+            val romTimestamp =
+                SystemPropertiesProxy.get(PROP_BENOS_TIMESTAMP).toLongOrNull()
+            val otaTimestamp = updateInfo.timestamp
+            Log.d(TAG, "ROM timestamp: $romTimestamp, OTA timestamp: $otaTimestamp")
+
+            if (romTimestamp != null && otaTimestamp != null && romTimestamp > otaTimestamp) {
+                Log.w(TAG, "ROM timestamp is newer than OTA; treating as up to date")
+                updateAvailable = false
+            }
+        }
+
         if (!updateAvailable) {
             Log.w(TAG, "Already up to date")
 
@@ -1044,6 +1057,7 @@ class UpdaterThread(
         val version: Int,
         val full: LocationInfo,
         val incremental: Map<String, LocationInfo> = emptyMap(),
+        val timestamp: Long? = null,
     )
 
     @Parcelize
@@ -1119,6 +1133,8 @@ class UpdaterThread(
 
         const val PROP_SECURITY_PATCH = "ro.build.version.security_patch"
         const val PROP_VBMETA_DIGEST = "ro.boot.vbmeta.digest"
+
+        const val PROP_BENOS_TIMESTAMP = "ro.benos_timestamp"
 
         private val JSON_FORMAT = Json { ignoreUnknownKeys = true }
 

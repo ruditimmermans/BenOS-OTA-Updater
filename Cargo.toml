@@ -6,5 +6,5 @@ resolver = "2"
 [workspace.package]
 license = "GPL-3.0-only"
 edition = "2024"
-repository = "https://github.com/chenxiaolong/Custota"
+repository = "https://github.com/benjamindaines/BenOS-OTA-Updater"
 publish = false

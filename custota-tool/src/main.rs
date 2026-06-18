@@ -16,6 +16,7 @@ use std::{
         Arc,
         atomic::{AtomicBool, Ordering},
     },
+    time::{SystemTime, UNIX_EPOCH},
 };
 
 use anyhow::{Context, Result, anyhow, bail};
@@ -108,6 +109,9 @@ struct LocationInfo {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 struct UpdateInfo {
     version: u8,
+    
+    #[serde(default)]
+    timestamp: i64,
     full: Option<LocationInfo>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     incremental: HashMap<String, LocationInfo>,
@@ -745,6 +749,11 @@ fn subcommand_gen_update_info(args: &GenerateUpdateInfo) -> Result<()> {
 
     update_info.version = 2;
 
+    update_info.timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .context("System time is before the Unix epoch")?
+        .as_secs() as i64;
+
     let location_info = LocationInfo {
         location_ota: args.location.0.clone(),
         location_csig: csig_location.into_owned(),
@@ -870,7 +879,7 @@ fn subcommand_gen_cert_module(args: &GenerateCertModule) -> Result<()> {
     )?;
 
     for (hash, cert) in certs {
-        let name = format!("cacerts/{hash:08x}.0");
+        let name = format!("cacerts_google/{hash:08x}.0");
         add_file(&mut archive, &name, |w| {
             crypto::write_pem_cert(Path::new(&name), w, &cert)?;
             Ok(())

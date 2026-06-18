@@ -18,8 +18,7 @@ has_mountpoint() {
 }
 
 module_id=$(module_prop id)
-apex_dir=/apex/com.android.conscrypt/cacerts
-system_dir=/system/etc/security/cacerts
+system_dir=/system/etc/security/cacerts_google
 mnt_base=${mod_dir}/mnt
 mnt_index=0
 
@@ -38,7 +37,7 @@ for cert_dir in "${apex_dir}" "${system_dir}"; do
         mount -t tmpfs "${module_id}" "${mnt_dir}"
 
     cp -r "${cert_dir}/." "${mnt_dir}"
-    cp -r "${mod_dir}/cacerts/." "${mnt_dir}"
+    cp -r "${mod_dir}/cacerts_google/." "${mnt_dir}"
 
     context=$(ls -Zd "${cert_dir}" | awk '{print $1}')
     chcon -R "${context}" "${mnt_dir}"

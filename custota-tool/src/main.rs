@@ -109,7 +109,9 @@ struct LocationInfo {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 struct UpdateInfo {
     version: u8,
-    
+    /// UTC timestamp (seconds since the Unix epoch) of when this update info
+    /// file was last written. Refreshed on every write by `gen-update-info`.
+    /// `#[serde(default)]` keeps older files that predate this field readable.
     #[serde(default)]
     timestamp: i64,
     full: Option<LocationInfo>,
@@ -749,6 +751,9 @@ fn subcommand_gen_update_info(args: &GenerateUpdateInfo) -> Result<()> {
 
     update_info.version = 2;
 
+    // Refresh the UTC timestamp (seconds since the Unix epoch) on every write so
+    // it always reflects when this update info file was last (re)generated. The
+    // updater app compares this against the running ROM's `ro.benos_timestamp`.
     update_info.timestamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .context("System time is before the Unix epoch")?
@@ -879,7 +884,7 @@ fn subcommand_gen_cert_module(args: &GenerateCertModule) -> Result<()> {
     )?;
 
     for (hash, cert) in certs {
-        let name = format!("cacerts_google/{hash:08x}.0");
+        let name = format!("cacerts/{hash:08x}.0");
         add_file(&mut archive, &name, |w| {
             crypto::write_pem_cert(Path::new(&name), w, &cert)?;
             Ok(())

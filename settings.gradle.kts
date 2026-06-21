@@ -19,4 +19,3 @@ dependencyResolutionManagement {
 }
 rootProject.name = "Custota"
 include(":app")
-include(":MdBlock")

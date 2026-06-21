@@ -11,7 +11,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,15 +37,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import com.chiller3.custota.Notifications
+import com.chiller3.custota.Preferences
 import com.chiller3.custota.R
 import com.chiller3.custota.ui.MdBullet
 import com.chiller3.custota.ui.MdBlock
@@ -86,6 +90,7 @@ class UpdateMessageActivity : ComponentActivity() {
                         finish()
                     },
                     onCancel = { finish() },
+                    onOpenWebsite = { openWebsite() },
                 )
             }
         }
@@ -99,6 +104,17 @@ class UpdateMessageActivity : ComponentActivity() {
             Log.i("UpdateMessageActivity", "DEBUG conflict resolution removed: $removed")
         }.start() */
         UpdaterJob.scheduleImmediate(this, UpdaterThread.Action.INSTALL_CONFIRMED) 
+    }
+
+    /** Open the configured BenOS website URL in the user's browser. */
+    private fun openWebsite() {
+        val url = Preferences(this).benosWebsiteUrl
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.w("UpdateMessageActivity", "Failed to open website: $url", e)
+        }
     }
 
     companion object {
@@ -122,6 +138,7 @@ private fun UpdateMessageScreen(
     fingerprints: List<String>,
     onInstall: () -> Unit,
     onCancel: () -> Unit,
+    onOpenWebsite: () -> Unit,
 ) {
     val blocks = remember(message) { Markdown.parse(message) }
     val insets = WindowInsets.systemBars.asPaddingValues()
@@ -157,11 +174,17 @@ private fun UpdateMessageScreen(
 
             Spacer(Modifier.height(32.dp))
 
+            // Bottom action bar, sized for a 720x720 screen: the "Open BenOS
+            // Website" button sits on the left, and the existing actions stay on
+            // the right, pushed over by a flexible spacer.
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                OutlinedButton(onClick = onOpenWebsite) {
+                    Text(stringResource(R.string.update_message_open_website))
+                }
+                Spacer(Modifier.weight(1f))
                 OutlinedButton(onClick = onCancel) {
                     Text(stringResource(R.string.update_message_dont_install))
                 }
@@ -239,16 +262,25 @@ private fun annotated(spans: List<MdSpan>): AnnotatedString {
     val linkColor = MaterialTheme.colorScheme.primary
     return buildAnnotatedString {
         for (s in spans) {
-            withStyle(
-                SpanStyle(
-                    fontWeight = if (s.bold) FontWeight.Bold else null,
-                    fontStyle = if (s.italic) FontStyle.Italic else null,
-                    fontFamily = if (s.code) FontFamily.Monospace else null,
-                    textDecoration = if (s.link != null) TextDecoration.Underline else null,
-                    color = if (s.link != null) linkColor else Color.Unspecified,
-                )
-            ) {
-                append(s.text)
+            val style = SpanStyle(
+                fontWeight = if (s.bold) FontWeight.Bold else null,
+                fontStyle = if (s.italic) FontStyle.Italic else null,
+                fontFamily = if (s.code) FontFamily.Monospace else null,
+                textDecoration = if (s.link != null) TextDecoration.Underline else null,
+                color = if (s.link != null) linkColor else Color.Unspecified,
+            )
+            val link = s.link
+            if (link != null) {
+                // Wrap the text in a real URL link annotation so that tapping it
+                // opens the browser. Styling-only spans (the previous behavior)
+                // looked like links but did not fire any intent.
+                withLink(LinkAnnotation.Url(link, TextLinkStyles(style = style))) {
+                    append(s.text)
+                }
+            } else {
+                withStyle(style) {
+                    append(s.text)
+                }
             }
         }
     }

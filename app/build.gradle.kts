@@ -238,7 +238,6 @@ dependencies {
     implementation(libs.material)
     implementation(libs.protobuf.javalite)
     debugImplementation(libs.androidx.compose.ui.tooling)
-    implementation(project(":MdBlock"))
 }
 
 val archive = tasks.register("archive") {

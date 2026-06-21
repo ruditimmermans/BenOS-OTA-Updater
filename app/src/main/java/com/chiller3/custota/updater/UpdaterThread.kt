@@ -27,6 +27,7 @@ import com.chiller3.custota.Preferences
 import com.chiller3.custota.extension.findCause
 import com.chiller3.custota.extension.findNestedFile
 import com.chiller3.custota.extension.toSingleLineString
+import com.chiller3.custota.ui.Markdown
 import com.chiller3.custota.wrapper.ServiceManagerProxy
 import com.chiller3.custota.wrapper.SystemPropertiesProxy
 import kotlinx.parcelize.Parcelize
@@ -627,6 +628,13 @@ class UpdaterThread(
         val vbmetaDigest = SystemPropertiesProxy.get(PROP_VBMETA_DIGEST)
         Log.d(TAG, "Current vbmeta digest: $vbmetaDigest")
 
+        // Running ROM's build timestamp (UTC seconds since the Unix epoch), read
+        // once and reused by both the update-info gate and the update-message gate
+        // below. Null when the property is unset or non-numeric, in which case
+        // neither gate applies and prior behavior is preserved.
+        val romTimestamp = SystemPropertiesProxy.get(PROP_BENOS_TIMESTAMP).toLongOrNull()
+        Log.d(TAG, "Current ROM timestamp: $romTimestamp")
+
         val locationInfo = updateInfo.incremental[vbmetaDigest] ?: updateInfo.full
         val isIncremental = locationInfo !== updateInfo.full
         Log.d(TAG, "OTA is incremental: $isIncremental")
@@ -655,14 +663,15 @@ class UpdaterThread(
             updateAvailable = csigInfo.vbmetaDigest != vbmetaDigest
         }
 
-        // Adding bespoke timestamp is easier than dealing with OTA metadata 
-        if (updateAvailable) {
-            val romTimestamp =
-                SystemPropertiesProxy.get(PROP_BENOS_TIMESTAMP).toLongOrNull()
-            val otaTimestamp = updateInfo.timestamp
+        // If the running ROM's build timestamp is newer than the timestamp of the
+        // published OTA, the device is already up to date and must not "update" to
+        // an older build. Both values are UTC timestamps in seconds since the Unix
+        // epoch. The gate is only applied when both values are present and
+        // parseable; otherwise the prior behavior is preserved unchanged.
+        val otaTimestamp = updateInfo.timestamp
+        if (updateAvailable && romTimestamp != null && otaTimestamp != null) {
             Log.d(TAG, "ROM timestamp: $romTimestamp, OTA timestamp: $otaTimestamp")
-
-            if (romTimestamp != null && otaTimestamp != null && romTimestamp > otaTimestamp) {
+            if (romTimestamp > otaTimestamp) {
                 Log.w(TAG, "ROM timestamp is newer than OTA; treating as up to date")
                 updateAvailable = false
             }
@@ -679,11 +688,29 @@ class UpdaterThread(
 
         // Best-effort fetch of an optional message to show the user before installing. The file is
         // a Markdown document sitting alongside the device JSON. If it is absent, there is simply
-        // no message.
+        // no message. The file may also carry a hidden timestamp marker (see
+        // Markdown.extractTimestamp): it is always stripped from the displayed text, and if the
+        // running ROM is newer than the message's timestamp, the message is treated as stale and
+        // suppressed (mirroring the update-info gate above).
         val message = try {
             val messageUri = resolveUri(baseUri, "${Build.DEVICE}.md")
             Log.d(TAG, "Update message URI: $messageUri")
-            fetchUpdateMessage(messageUri)
+            val rawMessage = fetchUpdateMessage(messageUri)
+
+            if (rawMessage == null) {
+                null
+            } else {
+                val (messageTimestamp, cleanedMessage) = Markdown.extractTimestamp(rawMessage)
+                Log.d(TAG, "Update message timestamp: $messageTimestamp")
+
+                if (messageTimestamp != null && romTimestamp != null &&
+                    romTimestamp > messageTimestamp) {
+                    Log.w(TAG, "ROM timestamp is newer than update message; hiding message")
+                    null
+                } else {
+                    cleanedMessage.trim().ifEmpty { null }
+                }
+            }
         } catch (e: Exception) {
             Log.d(TAG, "No update message available", e)
             null
@@ -1057,6 +1084,10 @@ class UpdaterThread(
         val version: Int,
         val full: LocationInfo,
         val incremental: Map<String, LocationInfo> = emptyMap(),
+        // UTC timestamp (seconds since the Unix epoch) of when this update info
+        // file was written by custota-tool. Nullable with a default so that
+        // update info files predating this field continue to parse and behave
+        // exactly as before.
         val timestamp: Long? = null,
     )
 
@@ -1134,6 +1165,9 @@ class UpdaterThread(
         const val PROP_SECURITY_PATCH = "ro.build.version.security_patch"
         const val PROP_VBMETA_DIGEST = "ro.boot.vbmeta.digest"
 
+        // ROM build timestamp (UTC, seconds since the Unix epoch). Compared
+        // against UpdateInfo.timestamp to detect when the running OS is already
+        // newer than the published OTA.
         const val PROP_BENOS_TIMESTAMP = "ro.benos_timestamp"
 
         private val JSON_FORMAT = Json { ignoreUnknownKeys = true }

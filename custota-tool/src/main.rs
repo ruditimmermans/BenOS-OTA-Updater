@@ -16,7 +16,7 @@ use std::{
         Arc,
         atomic::{AtomicBool, Ordering},
     },
-    time::{SystemTime, UNIX_EPOCH},
+//    time::{SystemTime, UNIX_EPOCH},
 };
 
 use anyhow::{Context, Result, anyhow, bail};
@@ -754,10 +754,15 @@ fn subcommand_gen_update_info(args: &GenerateUpdateInfo) -> Result<()> {
     // Refresh the UTC timestamp (seconds since the Unix epoch) on every write so
     // it always reflects when this update info file was last (re)generated. The
     // updater app compares this against the running ROM's `ro.benos_timestamp`.
-    update_info.timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .context("System time is before the Unix epoch")?
-        .as_secs() as i64;
+   // update_info.timestamp = SystemTime::now()
+    
+    update_info.timestamp = fs::read_to_string(".timestamp")?
+        .trim()
+        .parse::<i64>()?;
+
+//        .duration_since(UNIX_EPOCH)
+//        .context("System time is before the Unix epoch")?
+//        .as_secs() as i64;
 
     let location_info = LocationInfo {
         location_ota: args.location.0.clone(),

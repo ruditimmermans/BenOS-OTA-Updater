@@ -68,7 +68,7 @@
     <string name="pref_install_csig_cert_name">csig-certificaat installeren</string>
     <string name="pref_install_csig_cert_desc">Het certificaat wordt alleen gebruikt om <tt>.csig</tt>-bestanden te verifiëren. Dit is niet nodig wanneer het certificaat al aanwezig is in de <tt>otacerts.zip</tt> van het systeem. Houd het certificaat ingedrukt om het te verwijderen.</string>
     <string name="pref_pin_network_id_name">Vastzetten op specifiek netwerk-ID</string>
-    <string name="pref_pin_network_id_desc">Dit garandeert dat verkeer niet lekt naar een onverwacht (bijv. gemeten) netwerk. Wanneer dit is uitgeschakeld, heeft de optie voor een onmetered netwerk geen effect als het netwerk tijdens het downloaden verandert. Het uitschakelen hiervan is nodig bij gebruik van WireGuard\'s kernel-modus, omdat die de Android\'s netwerk‑API's breekt.</string>
+    <string name="pref_pin_network_id_desc">Dit garandeert dat verkeer niet lekt naar een onverwacht (bijv. gemeten) netwerk. Wanneer dit is uitgeschakeld, heeft de optie voor een onmetered netwerk geen effect als het netwerk tijdens het downloaden verandert. Het uitschakelen hiervan is nodig bij gebruik van WireGuard\'s kernel-modus, omdat die de Android\'s netwerk‑API\'s breekt.</string>
 
     <!-- Dialogs -->
     <string name="dialog_ota_source_title">@string/pref_ota_source_name</string>

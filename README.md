@@ -5,7 +5,8 @@ Based on Custota, but not really intended for general use.  Code posted for GPL 
 ## Changes
 - Adds a UI for displaying messages along with updates
 - Uses bespoke ROM prop value timestamp along with the Q25.json file and Q25.md files
-- Adds remote, private key signed & verified on device, rule provisioning for pre-reboot actions.  This private key is separate from the platform key, assuring I am the only one able to push these rules. 
+- Adds remote, private key signed & verified on device, rule provisioning for pre-reboot actions.  This private key is separate from the platform key, assuring I am the only one able to push these rules.
+- Uses the signed csig files to verify OTA timestamp, making update provisioning tamper-resistant (proof? Siths and absolutes and such...) 
 - Backs up user app data into NeoBackup-compatible backups before uninstalling packages that will conflict with added system packages.  Data can be restored into the system apps after reboot.
 - UI Modifications, hides some things under the debug options
 - Runs as a privilaged platform app on BenOS, no modules  

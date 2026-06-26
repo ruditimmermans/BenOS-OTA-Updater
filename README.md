@@ -9,3 +9,4 @@ Based on Custota, but not really intended for general use.  Code posted for GPL 
 - Backs up user app data into NeoBackup-compatible backups before uninstalling packages that will conflict with added system packages.  Data can be restored into the system apps after reboot.
 - UI Modifications, hides some things under the debug options
 - Runs a privilaged platform app on BenOS, no modules  
+  - Elevated permissions to allow unattended package removal, but has no access to user data.  Backups are done via a separate privilaged binary that sends data via a socket.  The updater app and this helper binary live in their own, separate SELinux domains to prevent potential misuse for data exfiltration.  Anything that would be able to take advantage would already have root access and effectively own your device, regardless. 
